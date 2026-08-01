@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUXE CRAFT | 3D Neo-Morphic Store</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ============================================
+           CSS VARIABLES & RESET
+           ============================================ */
+        :root {
+            --bg: #F7F9EC;
+            --primary: #5E4074;
+            --primary-light: #7a5a94;
+            --shadow-light: #ffffff;
+            --shadow-dark: #d1d3c7;
+            --glass-bg: rgba(94, 64, 116, 0.12);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --radius: 20px;
+            --radius-sm: 12px;
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--primary);
+            overflow-x: hidden;
+            perspective: 1000px;
+        }
+
+        /* ============================================
+           3D FLOATING ANIMATION
+           ============================================ */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotateX(0deg); }
+            50% { transform: translateY(-20px) rotateX(2deg); }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px) rotateX(10deg); }
+            to { opacity: 1; transform: translateY(0) rotateX(0deg); }
+        }
+
+        /* ============================================
+           NEO-MORPHIC BUTTONS
+           ============================================ */
+        .neo-btn {
+            background: var(--bg);
+            border: none;
+            border-radius: 16px;
+            padding: 14px 32px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--primary);
+            cursor: pointer;
+            box-shadow: 
+                8px 8px 16px var(--shadow-dark),
+                -8px -8px 16px var(--shadow-light);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .neo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                12px 12px 24px var(--shadow-dark),
+                -12px -12px 24px var(--shadow-light);
+        }
+
+        .neo-btn:active {
+            box-shadow: 
+                inset 6px 6px 12px var(--shadow-dark),
+                inset -6px -6px 12px var(--shadow-light);
+            transform: translateY(0);
+        }
+
+        .neo-btn.primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: #fff;
+            box-shadow: 
+                8px 8px 16px rgba(94, 64, 116, 0.3),
+                -8px -8px 16px rgba(255, 255, 255, 0.8);
+        }
+
+        .neo-btn.primary:hover {
+            box-shadow: 
+                12px 12px 24px rgba(94, 64, 116, 0.4),
+                -12px -12px 24px rgba(255, 255, 255, 0.9);
+        }
+
+        /* ============================================
+           LIQUID GLASS PRICE BADGE
+           ============================================ */
+        .liquid-price {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 
+                0 8px 32px rgba(94, 64, 116, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            border-radius: 24px;
+            padding: 10px 20px;
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .liquid-price::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        /* ============================================
+           NAVIGATION
+           ============================================ */
+        .navbar {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 92%;
+            max-width: 1400px;
+            z-index: 1000;
+            background: rgba(247, 249, 236, 0.7);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius);
+            padding: 16px 40px;
+            box-shadow: 
+                0 10px 40px rgba(94, 64, 116, 0.08),
+                inset 0 1px 0 rgba(255,255,255,0.8);
+            border: 1px solid rgba(255,255,255,0.6);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 500;
+            font-size: 14px;
+            position: relative;
+            padding: 4px 0;
+            transition: var(--transition);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .cart-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: var(--bg);
+            box-shadow: 
+                5px 5px 10px var(--shadow-dark),
+                -5px -5px 10px var(--shadow-light);
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .cart-icon:hover {
+            transform: scale(1.1) rotateY(10deg);
+        }
+
+        .cart-count {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(94, 64, 116, 0.4);
+        }
+
+        /* ============================================
+           HERO SECTION (3D)
+           ============================================ */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 120px 40px 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-content {
+            text-align: center;
+            max-width: 900px;
+            z-index: 2;
+            transform-style: preserve-3d;
+        }
+
+        .hero h1 {
+            font-size: clamp(40px, 8vw, 80px);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 50%, var(--primary) 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 5s linear infinite;
+            transform: translateZ(50px);
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: var(--primary);
+            opacity: 0.7;
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            transform: translateZ(30px);
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            transform: translateZ(40px);
+        }
+
+        /* 3D Floating Objects in Background */
+        .floating-orb {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(94, 64, 116, 0.1), rgba(94, 64, 116, 0.05));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.5);
+            animation: float 6s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .orb-1 { width: 300px; height: 300px; top: 10%; left: -5%; animation-delay: 0s; }
+        .orb-2 { width: 200px; height: 200px; top: 60%; right: -3%; animation-delay: 2s; }
+        .orb-3 { width: 150px; height: 150px; bottom: 10%; left: 20%; animation-delay: 4s; }
+
+        /* ============================================
+           SECTIONS
+           ============================================ */
+        .section {
+            padding: 100px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+            transform-style: preserve-3d;
+        }
+
+        .section-header h2 {
+            font-size: clamp(28px, 5vw, 48px);
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--primary);
+        }
+
+        .section-header p {
+            font-size: 16px;
+            opacity: 0.6;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* ============================================
+           PRODUCT CARDS (3D TILT)
+           ============================================ */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 40px;
+            perspective: 1000px;
+        }
+
+        .product-card {
+            background: var(--bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: 
+                12px 12px 24px var(--shadow-dark),
+                -12px -12px 24px var(--shadow-light);
+            transition: var(--transition);
+            transform-style: preserve-3d;
+            position: relative;
+            cursor: pointer;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .product-card:nth-child(1) { animation-delay: 0.1s; }
+        .product-card:nth-child(2) { animation-delay: 0.2s; }
+        .product-card:nth-child(3) { animation-delay: 0.3s; }
+        .product-card:nth-child(4) { animation-delay: 0.4s; }
+
+        .product-card:hover {
+            box-shadow: 
+                20px 20px 40px var(--shadow-dark),
+                -20px -20px 40px var(--shadow-light);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 260px;
+            background: linear-gradient(135deg, #e8eadf 0%, #f0f2e5 100%);
+            border-radius: var(--radius-sm);
+            margin-bottom: 20px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s ease;
+        }
+
+        .product-card:hover .product-image img {
+            transform: scale(1.1);
+        }
+
+        .product-info {
+            transform: translateZ(20px);
+        }
+
+        .product-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--primary);
+        }
+
+        .product-desc {
+            font-size: 13px;
+            opacity: 0.6;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .product-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transform: translateZ(30px);
+        }
+
+        /* ============================================
+           BENTO GRID (DRESS/FASHION SECTION)
+           ============================================ */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-auto-rows: 300px;
+            gap: 24px;
+            perspective: 1000px;
+        }
+
+        .bento-card {
+            background: var(--bg);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: 
+                10px 10px 20px var(--shadow-dark),
+                -10px -10px 20px var(--shadow-light);
+            transition: var(--transition);
+            transform-style: preserve-3d;
+            position: relative;
+            cursor: pointer;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .bento-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 
+                16px 16px 32px var(--shadow-dark),
+                -16px -16px 32px var(--shadow-light);
+            z-index: 10;
+        }
+
+        .bento-card.large {
+            grid-column: span 2;
+            grid-row: span 2;
+        }
+
+        .bento-card.wide {
+            grid-column: span 2;
+        }
+
+        .bento-card.tall {
+            grid-row: span 2;
+        }
+
+        .bento-image {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #e8eadf, #f0f2e5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bento-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.8s ease;
+        }
+
+        .bento-card:hover .bento-image img {
+            transform: scale(1.15);
+        }
+
+        .bento-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 30px;
+            background: linear-gradient(to top, rgba(94, 64, 116, 0.9), transparent);
+            color: #fff;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.4s ease;
+        }
+
+        .bento-card:hover .bento-overlay {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .bento-overlay h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .bento-overlay .liquid-price {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        /* ============================================
+           CATEGORY SECTIONS
+           ============================================ */
+        .category-section {
+            margin-bottom: 80px;
+        }
+
+        .category-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary);
+            box-shadow: 
+                4px 4px 8px var(--shadow-dark),
+                -4px -4px 8px var(--shadow-light);
+            margin-bottom: 30px;
+        }
+
+        /* ============================================
+           CART SIDEBAR (3D SLIDE)
+           ============================================ */
+        .cart-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(94, 64, 116, 0.2);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .cart-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .cart-sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 420px;
+            max-width: 90vw;
+            height: 100vh;
+            background: var(--bg);
+            box-shadow: -20px 0 60px rgba(94, 64, 116, 0.15);
+            z-index: 2001;
+            padding: 40px;
+            transform: translateX(100%) rotateY(-15deg);
+            transform-origin: left center;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+        }
+
+        .cart-overlay.active .cart-sidebar {
+            transform: translateX(0) rotateY(0);
+        }
+
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .cart-header h2 {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .close-cart {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg);
+            box-shadow: 
+                5px 5px 10px var(--shadow-dark),
+                -5px -5px 10px var(--shadow-light);
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--primary);
+            transition: var(--transition);
+        }
+
+        .close-cart:hover {
+            transform: rotate(90deg);
+        }
+
+        .cart-item {
+            display: flex;
+            gap: 16px;
+            padding: 20px;
+            background: var(--bg);
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+            box-shadow: 
+                6px 6px 12px var(--shadow-dark),
+                -6px -6px 12px var(--shadow-light);
+        }
+
+        .cart-item-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #e8eadf, #f0f2e5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            flex-shrink: 0;
+        }
+
+        .cart-item-info h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .cart-item-info p {
+            font-size: 14px;
+            opacity: 0.6;
+        }
+
+        /* ============================================
+           TOAST NOTIFICATION
+           ============================================ */
+        .toast {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 20px 60px rgba(94, 64, 116, 0.2);
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-weight: 600;
+            color: var(--primary);
+            z-index: 3000;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        .footer {
+            background: linear-gradient(135deg, rgba(94, 64, 116, 0.05), rgba(94, 64, 116, 0.02));
+            padding: 80px 40px 40px;
+            margin-top: 100px;
+            border-top: 1px solid rgba(94, 64, 116, 0.1);
+        }
+
+        .footer-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 60px;
+        }
+
+        .footer-brand .logo {
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .footer-brand p {
+            opacity: 0.6;
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .footer-links h4 {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links ul {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 12px;
+        }
+
+        .footer-links a {
+            text-decoration: none;
+            color: var(--primary);
+            opacity: 0.6;
+            font-size: 14px;
+            transition: opacity 0.3s;
+        }
+
+        .footer-links a:hover {
+            opacity: 1;
+        }
+
+        .footer-bottom {
+            max-width: 1400px;
+            margin: 60px auto 0;
+            padding-top: 30px;
+            border-top: 1px solid rgba(94, 64, 116, 0.1);
+            text-align: center;
+            font-size: 13px;
+            opacity: 0.5;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 1024px) {
+            .bento-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .bento-card.large, .bento-card.wide {
+                grid-column: span 2;
+            }
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 12px 20px;
+            }
+            .nav-links {
+                display: none;
+            }
+            .hero h1 {
+                font-size: 36px;
+            }
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+            .bento-grid {
+                grid-template-columns: 1fr;
+                grid-auto-rows: 250px;
+            }
+            .bento-card.large, .bento-card.wide, .bento-card.tall {
+                grid-column: span 1;
+                grid-row: span 1;
+            }
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+            .section {
+                padding: 60px 20px;
+            }
+        }
+
+        /* Scroll reveal */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s ease-out;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Floating Background Orbs -->
+    <div class="floating-orb orb-1"></div>
+    <div class="floating-orb orb-2"></div>
+    <div class="floating-orb orb-3"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="logo">LUXE CRAFT</div>
+        <ul class="nav-links">
+            <li><a href="#kitchen">Kitchen</a></li>
+            <li><a href="#ceramics">Ceramics</a></li>
+            <li><a href="#leather">Leather</a></li>
+            <li><a href="#fashion">Fashion</a></li>
+            <li><a href="#about">About</a></li>
+        </ul>
+        <div class="cart-icon" onclick="toggleCart()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+            <span class="cart-count" id="cartCount">0</span>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Craft Your Lifestyle<br>in 3D Reality</h1>
+            <p>Discover our curated collection of neomorphic kitchenware, artisan ceramics, premium leather goods, and fashion essentials.</p>
+            <div class="hero-buttons">
+                <button class="neo-btn primary" onclick="scrollToSection('kitchen')">Explore Collection</button>
+                <button class="neo-btn" onclick="scrollToSection('fashion')">New Arrivals</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Kitchenware Section -->
+    <section class="section" id="kitchen">
+        <div class="section-header reveal">
+            <span class="category-label">🏠 Kitchen & Dining</span>
+            <h2>Kitchen Essentials</h2>
+            <p>Neomorphic spoons, tumblers, water bottles, and ceramic plates designed for modern living.</p>
+        </div>
+        <div class="products-grid" id="kitchenGrid"></div>
+    </section>
+
+    <!-- Ceramics Section -->
+    <section class="section" id="ceramics">
+        <div class="section-header reveal">
+            <span class="category-label">🏺 Artisan Ceramics</span>
+            <h2>Handcrafted Ceramics</h2>
+            <p>Every piece tells a story. Explore our collection of artistic plates, cups, and bowls.</p>
+        </div>
+        <div class="products-grid" id="ceramicsGrid"></div>
+    </section>
+
+    <!-- Leather Section -->
+    <section class="section" id="leather">
+        <div class="section-header reveal">
+            <span class="category-label">🧳 Premium Leather</span>
+            <h2>Leather Goods</h2>
+            <p>Purses, laptop bags, shoes, and gym bags crafted from the finest full-grain leather.</p>
+        </div>
+        <div class="products-grid" id="leatherGrid"></div>
+    </section>
+
+    <!-- Fashion Bento Grid Section -->
+    <section class="section" id="fashion">
+        <div class="section-header reveal">
+            <span class="category-label">👗 Fashion</span>
+            <h2>Style Collection</h2>
+            <p>Curated fashion pieces displayed in our signature Bento Grid layout.</p>
+        </div>
+        <div class="bento-grid" id="fashionGrid"></div>
+    </section>
+
+    <!-- Cart Sidebar -->
+    <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()">
+        <div class="cart-sidebar" onclick="event.stopPropagation()">
+            <div class="cart-header">
+                <h2>Your Cart</h2>
+                <button class="close-cart" onclick="toggleCart()">×</button>
+            </div>
+            <div id="cartItems"></div>
+            <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid rgba(94,64,116,0.1);">
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px; font-size:18px; font-weight:700;">
+                    <span>Total</span>
+                    <span id="cartTotal">$0.00</span>
+                </div>
+                <button class="neo-btn primary" style="width:100%; padding:18px;">Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">Added to cart!</div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <div class="logo">LUXE CRAFT</div>
+                <p>Redefining everyday objects through the lens of neomorphic design. Every product is a statement of minimal luxury.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Shop</h4>
+                <ul>
+                    <li><a href="#kitchen">Kitchen</a></li>
+                    <li><a href="#ceramics">Ceramics</a></li>
+                    <li><a href="#leather">Leather</a></li>
+                    <li><a href="#fashion">Fashion</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Careers</a></li>
+                    <li><a href="#">Press</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Shipping</a></li>
+                    <li><a href="#">Returns</a></li>
+                    <li><a href="#">Privacy</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            © 2026 LUXE CRAFT. All rights reserved. Crafted in 3D.
+        </div>
+    </footer>
+
+    <script>
+        /* ============================================
+           PRODUCT DATA
+           ============================================ */
+        const products = {
+            kitchen: [
+                { id: 1, name: "Neo Spoon Set", desc: "Matte titanium finish, ergonomic grip", price: 34, icon: "🥄" },
+                { id: 2, name: "Glass Tumbler", desc: "Borosilicate glass, neomorphic base", price: 28, icon: "🥤" },
+                { id: 3, name: "Ceramic Water Bottle", desc: "Insulated ceramic, 500ml capacity", price: 45, icon: "💧" },
+                { id: 4, name: "Dinner Plate Set", desc: "Set of 4 minimalist ceramic plates", price: 89, icon: "🍽️" }
+            ],
+            ceramics: [
+                { id: 5, name: "Artisan Plate", desc: "Hand-painted stoneware, 10-inch", price: 52, icon: "🏺" },
+                { id: 6, name: "Clay Coffee Cup", desc: "Textured clay with raw edge", price: 24, icon: "☕" },
+                { id: 7, name: "Ceramic Bowl", desc: "Deep serving bowl, reactive glaze", price: 38, icon: "🥣" },
+                { id: 8, name: "Tea Mug Set", desc: "Set of 2 with bamboo lids", price: 42, icon: "🍵" }
+            ],
+            leather: [
+                { id: 9, name: "Mini Leather Purse", desc: "Full-grain leather, brass clasp", price: 120, icon: "👜" },
+                { id: 10, name: "Laptop Briefcase", desc: "Fits 16-inch, padded compartments", price: 195, icon: "💼" },
+                { id: 11, name: "Oxford Leather Shoes", desc: "Hand-stitched, vegetable tanned", price: 240, icon: "👞" },
+                { id: 12, name: "Gym Duffel Bag", desc: "Water-resistant lining, shoe pocket", price: 165, icon: "🎒" }
+            ],
+            fashion: [
+                { id: 13, name: "Linen Summer Dress", price: 145, size: "large", icon: "👗" },
+                { id: 14, name: "Silk Evening Gown", price: 320, size: "tall", icon: "👘" },
+                { id: 15, name: "Cotton Midi Dress", price: 98, size: "wide", icon: "👚" },
+                { id: 16, name: "Velvet Wrap Dress", price: 175, size: "normal", icon: "🥻" },
+                { id: 17, name: "Boho Maxi Dress", price: 130, size: "large", icon: "🧥" },
+                { id: 18, name: "Minimal Shift Dress", price: 115, size: "wide", icon: "🦺" }
+            ]
+        };
+
+        let cart = [];
+
+        /* ============================================
+           RENDER FUNCTIONS
+           ============================================ */
+        function renderProducts(category, containerId) {
+            const container = document.getElementById(containerId);
+            products[category].forEach((product, index) => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.style.animationDelay = `${index * 0.1}s`;
+                card.innerHTML = `
+                    <div class="product-image">
+                        <div style="font-size:80px; opacity:0.3;">${product.icon}</div>
+                    </div>
+                    <div class="product-info">
+                        <h3 class="product-title">${product.name}</h3>
+                        <p class="product-desc">${product.desc}</p>
+                        <div class="product-footer">
+                            <span class="liquid-price">$${product.price}</span>
+                            <button class="neo-btn" style="padding:10px 20px; font-size:12px;" onclick="addToCart(${product.id}, '${category}')">
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // 3D Tilt Effect
+                card.addEventListener('mousemove', handleTilt);
+                card.addEventListener('mouseleave', resetTilt);
+                
+                container.appendChild(card);
+            });
+        }
+
+        function renderBentoGrid() {
+            const container = document.getElementById('fashionGrid');
+            const sizeMap = {
+                'large': 'large',
+                'tall': 'tall',
+                'wide': 'wide',
+                'normal': ''
+            };
+
+            products.fashion.forEach((product, index) => {
+                const card = document.createElement('div');
+                card.className = `bento-card ${sizeMap[product.size] || ''}`;
+                card.style.animationDelay = `${index * 0.15}s`;
+                card.innerHTML = `
+                    <div class="bento-image">
+                        <div style="font-size:100px; opacity:0.2;">${product.icon}</div>
+                    </div>
+                    <div class="bento-overlay">
+                        <h3>${product.name}</h3>
+                        <span class="liquid-price">$${product.price}</span>
+                    </div>
+                `;
+                
+                card.addEventListener('mousemove', handleTilt);
+                card.addEventListener('mouseleave', resetTilt);
+                card.addEventListener('click', () => addToCart(product.id, 'fashion'));
+                
+                container.appendChild(card);
+            });
+        }
+
+        /* ============================================
+           3D TILT LOGIC
+           ============================================ */
+        function handleTilt(e) {
+            const card = e.currentTarget;
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            const rotateX = ((y - centerY) / centerY) * -10;
+            const rotateY = ((x - centerX) / centerX) * 10;
+            
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(20px) scale(1.02)`;
+        }
+
+        function resetTilt(e) {
+            const card = e.currentTarget;
+            card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateZ(0) scale(1)';
+        }
+
+        /* ============================================
+           CART LOGIC
+           ============================================ */
+        function addToCart(productId, category) {
+            const product = products[category].find(p => p.id === productId);
+            cart.push(product);
+            updateCart();
+            showToast(`${product.name} added to cart!`);
+        }
+
+        function updateCart() {
+            const countEl = document.getElementById('cartCount');
+            const itemsEl = document.getElementById('cartItems');
+            const totalEl = document.getElementById('cartTotal');
+            
+            countEl.textContent = cart.length;
+            
+            if (cart.length === 0) {
+                itemsEl.innerHTML = '<p style="text-align:center; opacity:0.5; padding:40px 0;">Your cart is empty</p>';
+                totalEl.textContent = '$0.00';
+                return;
+            }
+            
+            itemsEl.innerHTML = cart.map((item, i) => `
+                <div class="cart-item">
+                    <div class="cart-item-img">${item.icon}</div>
+                    <div class="cart-item-info">
+                        <h4>${item.name}</h4>
+                        <p>$${item.price}</p>
+                    </div>
+                    <button class="close-cart" style="width:32px; height:32px; align-self:center;" onclick="removeFromCart(${i})">×</button>
+                </div>
+            `).join('');
+            
+            const total = cart.reduce((sum, item) => sum + item.price, 0);
+            totalEl.textContent = `$${total.toFixed(2)}`;
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCart();
+        }
+
+        function toggleCart() {
+            document.getElementById('cartOverlay').classList.toggle('active');
+        }
+
+        /* ============================================
+           TOAST
+           ============================================ */
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        /* ============================================
+           SCROLL UTILS
+           ============================================ */
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Scroll Reveal
+        const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        /* ============================================
+           INIT
+           ============================================ */
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProducts('kitchen', 'kitchenGrid');
+            renderProducts('ceramics', 'ceramicsGrid');
+            renderProducts('leather', 'leatherGrid');
+            renderBentoGrid();
+            
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        });
+
+        // Parallax on scroll for floating orbs
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            document.querySelectorAll('.floating-orb').forEach((orb, i) => {
+                const speed = 0.5 + (i * 0.2);
+                orb.style.transform = `translateY(${scrolled * speed}px)`;
+            });
+        });
+    </script>
+</body>
+</html>
