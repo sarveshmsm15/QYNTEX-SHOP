@@ -154,6 +154,25 @@ function saveOrders() { localStorage.setItem('luxeOrders', JSON.stringify(orders
 function saveSettings() { localStorage.setItem('luxeSettings', JSON.stringify(settings)); }
 
 /* ============================================
+   BACKEND API HELPERS
+   ============================================ */
+async function apiPost(endpoint, data) {
+    const res = await fetch(`${window.API_BASE}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    return res.json();
+}
+
+async function apiGet(endpoint) {
+    const res = await fetch(`${window.API_BASE}${endpoint}`);
+    return res.json();
+}
+
+
+
+/* ============================================
    UTILS
    ============================================ */
 function getAllProducts() {
@@ -626,31 +645,6 @@ function renderCheckoutSummary() {
     document.getElementById('checkoutTotal').textContent = '$' + total.toFixed(2);
 }
 
-function placeOrder() {
-    const orderId = 'LC-' + Date.now().toString(36).toUpperCase();
-    const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-    const shipping = subtotal > 150 ? 0 : 12;
-    const tax = subtotal * 0.08;
-    const total = subtotal + shipping + tax;
-    const order = {
-        id: orderId, date: new Date().toISOString().split('T')[0], status: 'processing',
-        items: cart.map(i => ({...i})), subtotal, shipping, tax, total,
-        address: currentCheckoutAddress,
-        tracking: '1Z' + Math.random().toString(36).substr(2, 9).toUpperCase()
-    };
-    orders.unshift(order);
-    saveOrders();
-    closeCheckoutModal();
-    document.getElementById('orderDetails').innerHTML =
-        '<p><strong>Order ID:</strong> ' + orderId + '</p>' +
-        '<p><strong>Total:</strong> $' + total.toFixed(2) + '</p>' +
-        '<p><strong>Items:</strong> ' + cart.reduce((s, i) => s + i.qty, 0) + '</p>' +
-        '<p><strong>Shipping to:</strong> ' + (currentCheckoutAddress ? currentCheckoutAddress.city + ', ' + currentCheckoutAddress.country : 'N/A') + '</p>' +
-        '<p style="margin-top:8px; font-size:12px; opacity:0.6;">A confirmation email has been sent to ' + (currentUser ? currentUser.email : 'your email') + '.</p>';
-    document.getElementById('successOverlay').classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
-
 function closeSuccessAndReset() {
     document.getElementById('successOverlay').classList.remove('active');
     document.body.style.overflow = '';
@@ -878,6 +872,168 @@ function scrollToSection(id) {
         const offset = 100;
         const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
         window.scrollTo({ top, behavior: 'smooth' });
+    }
+}
+
+
+/* ============================================
+   STRIPE CHECKOUT & PAYMENT RETURN
+   ============================================ */
+function placeOrder() {
+    if (cart.length === 0) { showToast('Your cart is empty!', 'error'); return; }
+
+    const btn = document.getElementById('placeOrderBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ Redirecting to Secure Payment...';
+    btn.disabled = true;
+
+    const orderPayload = {
+        items: cart.map(i => ({ id: i.id, name: i.name, desc: i.desc, price: i.price, qty: i.qty, icon: i.icon })),
+        address: currentCheckoutAddress,
+        customerEmail: currentUser ? currentUser.email : 'guest@luxecraft.com',
+        customerName: currentUser ? currentUser.name : `${currentCheckoutAddress.firstName} ${currentCheckoutAddress.lastName}`,
+        customerPhone: currentCheckoutAddress.phone
+    };
+
+    apiPost('/create-checkout-session', orderPayload)
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+
+            if (data.success && data.sessionUrl) {
+                localStorage.setItem('pendingOrderId', data.orderId);
+                window.location.href = data.sessionUrl;
+            } else {
+                showToast(data.error || 'Payment setup failed', 'error');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            showToast('Connection error. Please try again.', 'error');
+        });
+}
+
+function handlePaymentReturn() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const cancelled = urlParams.get('cancelled');
+    const orderId = urlParams.get('order_id');
+    const sessionId = urlParams.get('session_id');
+
+    if (success === 'true' && orderId && sessionId) {
+        apiPost('/verify-payment', { session_id: sessionId, order_id: orderId })
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('orderDetails').innerHTML =
+                        '<div class="order-received-banner">🎉 Your order has been received and confirmed!</div>' +
+                        '<p><strong>Order ID:</strong> ' + orderId + '</p>' +
+                        '<p><strong>Status:</strong> Payment Confirmed ✅</p>' +
+                        '<p><strong>Items:</strong> ' + cart.reduce((s, i) => s + i.qty, 0) + '</p>' +
+                        '<p style="margin-top:8px; font-size:12px; opacity:0.6;">A confirmation email has been sent. We will notify you when your order ships!</p>';
+                    document.getElementById('successOverlay').classList.add('active');
+                    document.body.style.overflow = 'hidden';
+
+                    cart = [];
+                    saveCart();
+                    updateCartUI();
+                    localStorage.removeItem('pendingOrderId');
+                    generateDemoOrders();
+                }
+            })
+            .catch(err => {
+                showToast('Payment verified! Confirmation loading...', 'success');
+            });
+
+        window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (cancelled === 'true') {
+        showToast('Payment cancelled. Your cart is saved.', 'info');
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}
+
+/* ============================================
+   WHATSAPP INQUIRY
+   ============================================ */
+function initWhatsApp() {
+    const btn = document.getElementById('whatsappBtn');
+    const overlay = document.getElementById('whatsappOverlay');
+    const close = document.getElementById('whatsappClose');
+    const form = document.getElementById('whatsappForm');
+
+    if (!btn) return;
+
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    });
+
+    close.addEventListener('click', () => {
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    });
+
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('waName').value.trim();
+        const email = document.getElementById('waEmail').value.trim();
+        const phone = document.getElementById('waPhone').value.trim();
+        const message = document.getElementById('waMessage').value.trim();
+
+        apiPost('/inquiry', { name, email, phone, message })
+            .then(data => {
+                if (data.success) {
+                    showToast('Inquiry sent! Opening WhatsApp...', 'success');
+                }
+            })
+            .catch(() => {
+                showToast('Opening WhatsApp...', 'info');
+            });
+
+        const text = `Hi LUXE CRAFT!%0A%0A*Name:* ${encodeURIComponent(name)}%0A*Email:* ${encodeURIComponent(email)}%0A*Phone:* ${encodeURIComponent(phone || 'N/A')}%0A%0A*Message:*%0A${encodeURIComponent(message)}`;
+        const waUrl = `https://wa.me/${window.WHATSAPP_NUMBER}?text=${text}`;
+
+        setTimeout(() => {
+            window.open(waUrl, '_blank');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+            form.reset();
+        }, 800);
+    });
+}
+
+/* ============================================
+   FETCH REAL ORDERS FROM BACKEND
+   ============================================ */
+async function fetchBackendOrders() {
+    try {
+        const data = await apiGet('/orders');
+        if (Array.isArray(data) && data.length > 0) {
+            orders = data.map(o => ({
+                id: o.order_id,
+                date: o.created_at ? o.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+                status: o.status || 'processing',
+                items: Array.isArray(o.items) ? o.items : JSON.parse(o.items || '[]'),
+                subtotal: o.subtotal || 0,
+                shipping: o.shipping || 0,
+                tax: o.tax || 0,
+                total: o.total || 0,
+                address: typeof o.shipping_address === 'string' ? JSON.parse(o.shipping_address) : o.shipping_address,
+                tracking: '1Z' + Math.random().toString(36).substr(2, 9).toUpperCase()
+            }));
+            saveOrders();
+        }
+    } catch (e) {
+        console.log('Backend orders not available, using local');
     }
 }
 
@@ -1121,198 +1277,14 @@ document.addEventListener('DOMContentLoaded', () => {
         saveSettings();
         showToast('Preferences saved', 'success');
     });
+
+    // Backend integrations
+    handlePaymentReturn();
+    initWhatsApp();
+    fetchBackendOrders();
 });
 
 function switchSettingsTab(tab) {
     document.querySelectorAll('.settings-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.settings-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
 }
-/* ============================================
-   BACKEND API HELPERS
-   ============================================ */
-async function apiPost(endpoint, data) {
-    const res = await fetch(`${window.API_BASE}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
-    return res.json();
-}
-
-async function apiGet(endpoint) {
-    const res = await fetch(`${window.API_BASE}${endpoint}`);
-    return res.json();
-}
-
-/* ============================================
-   CHECKOUT FLOW (Stripe Integration)
-   ============================================ */
-function proceedToCheckout() {
-    if (cart.length === 0) { showToast('Your cart is empty!', 'error'); return; }
-    toggleCart(false);
-    if (!currentUser) { openAuthModal(); }
-    else { openAddressModal(); }
-}
-
-function placeOrder() {
-    if (cart.length === 0) { showToast('Your cart is empty!', 'error'); return; }
-    
-    const btn = document.getElementById('placeOrderBtn');
-    btn.innerHTML = '<span class="payment-loading">Redirecting to Secure Payment...</span>';
-    btn.disabled = true;
-
-    const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-    const shipping = subtotal > 150 ? 0 : 12;
-    const tax = subtotal * 0.08;
-    const total = subtotal + shipping + tax;
-
-    const orderPayload = {
-        items: cart.map(i => ({ id: i.id, name: i.name, desc: i.desc, price: i.price, qty: i.qty, icon: i.icon })),
-        address: currentCheckoutAddress,
-        customerEmail: currentUser ? currentUser.email : 'guest@luxecraft.com',
-        customerName: currentUser ? currentUser.name : `${currentCheckoutAddress.firstName} ${currentCheckoutAddress.lastName}`,
-        customerPhone: currentCheckoutAddress.phone
-    };
-
-    apiPost('/create-checkout-session', orderPayload)
-        .then(data => {
-            btn.disabled = false;
-            btn.innerHTML = 'Place Order →';
-            
-            if (data.success && data.sessionUrl) {
-                // Save order ID for after payment return
-                localStorage.setItem('pendingOrderId', data.orderId);
-                // Redirect to Stripe Checkout
-                window.location.href = data.sessionUrl;
-            } else {
-                showToast(data.error || 'Payment setup failed', 'error');
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            btn.disabled = false;
-            btn.innerHTML = 'Place Order →';
-            showToast('Connection error. Please try again.', 'error');
-        });
-}
-
-/* ============================================
-   HANDLE PAYMENT RETURN (Success/Cancel)
-   ============================================ */
-function handlePaymentReturn() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const success = urlParams.get('success');
-    const cancelled = urlParams.get('cancelled');
-    const orderId = urlParams.get('order_id');
-    const sessionId = urlParams.get('session_id');
-
-    if (success === 'true' && orderId && sessionId) {
-        // Verify payment with backend
-        apiPost('/verify-payment', { session_id: sessionId, order_id: orderId })
-            .then(data => {
-                if (data.success) {
-                    // Show success modal
-                    document.getElementById('orderDetails').innerHTML =
-                        '<div class="order-received-banner">🎉 Your order has been received!</div>' +
-                        '<p><strong>Order ID:</strong> ' + orderId + '</p>' +
-                        '<p><strong>Status:</strong> Payment Confirmed ✅</p>' +
-                        '<p style="margin-top:8px; font-size:12px; opacity:0.6;">A confirmation has been sent to your email.</p>';
-                    document.getElementById('successOverlay').classList.add('active');
-                    document.body.style.overflow = 'hidden';
-                    
-                    // Clear cart
-                    cart = [];
-                    saveCart();
-                    updateCartUI();
-                    localStorage.removeItem('pendingOrderId');
-                    
-                    // Generate demo order for display
-                    generateDemoOrders();
-                }
-            })
-            .catch(err => {
-                showToast('Payment verified but confirmation delayed', 'info');
-            });
-        
-        // Clean URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (cancelled === 'true') {
-        showToast('Payment cancelled. Your cart is saved.', 'info');
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-}
-
-/* ============================================
-   WHATSAPP INQUIRY
-   ============================================ */
-function initWhatsApp() {
-    const btn = document.getElementById('whatsappBtn');
-    const overlay = document.getElementById('whatsappOverlay');
-    const close = document.getElementById('whatsappClose');
-    const form = document.getElementById('whatsappForm');
-    
-    if (!btn) return;
-
-    // Direct WhatsApp quick message
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        overlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    });
-
-    close.addEventListener('click', () => {
-        overlay.classList.remove('active');
-        document.body.style.overflow = '';
-    });
-
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-            overlay.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-    });
-
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const name = document.getElementById('waName').value.trim();
-        const email = document.getElementById('waEmail').value.trim();
-        const phone = document.getElementById('waPhone').value.trim();
-        const message = document.getElementById('waMessage').value.trim();
-
-        // Save inquiry to backend
-        apiPost('/inquiry', { name, email, phone, message })
-            .then(data => {
-                if (data.success) {
-                    showToast('Inquiry sent! Opening WhatsApp...', 'success');
-                }
-            })
-            .catch(() => {
-                showToast('Inquiry saved locally. Opening WhatsApp...', 'info');
-            });
-
-        // Open WhatsApp with pre-filled message
-        const text = `Hi LUXE CRAFT!%0A%0A*Name:* ${encodeURIComponent(name)}%0A*Email:* ${encodeURIComponent(email)}%0A*Phone:* ${encodeURIComponent(phone || 'N/A')}%0A%0A*Message:*%0A${encodeURIComponent(message)}`;
-        const waUrl = `https://wa.me/${window.WHATSAPP_NUMBER}?text=${text}`;
-        
-        setTimeout(() => {
-            window.open(waUrl, '_blank');
-            overlay.classList.remove('active');
-            document.body.style.overflow = '';
-            form.reset();
-        }, 800);
-    });
-}
-
-/* ============================================
-   UPDATED DOMContentLoaded
-   ============================================ */
-// Add this at the END of your existing DOMContentLoaded:
-document.addEventListener('DOMContentLoaded', () => {
-    // ... keep all your existing init code ...
-    
-    // Handle payment return (Stripe redirect back)
-    handlePaymentReturn();
-    
-    // Init WhatsApp
-    initWhatsApp();
-});

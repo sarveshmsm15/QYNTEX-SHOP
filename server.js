@@ -58,28 +58,24 @@ db.serialize(() => {
 });
 
 /* ============================================
-   NOTIFICATION SERVICE (Console + Ready for Twilio)
+   NOTIFICATION SERVICE
    ============================================ */
 function sendOrderNotification(order) {
     const msg = `🛒 NEW ORDER RECEIVED!\n\nOrder: ${order.order_id}\nCustomer: ${order.customer_name}\nEmail: ${order.customer_email}\nPhone: ${order.customer_phone}\nTotal: $${order.total.toFixed(2)}\nItems: ${order.items.length}\n\nStatus: ${order.status}`;
-    
+
     console.log('\n' + '='.repeat(50));
     console.log(msg);
     console.log('='.repeat(50) + '\n');
-    
-    // TODO: Integrate Twilio SMS here
-    // TODO: Integrate SendGrid/NodeMailer email here
-    // TODO: Integrate WhatsApp Business API here
-    
+
+    // TODO: Add Twilio SMS / SendGrid Email / WhatsApp Business API here
+
     return true;
 }
 
 function sendCustomerConfirmation(order) {
     const msg = `Hi ${order.customer_name}, your order ${order.order_id} for $${order.total.toFixed(2)} has been received and is being processed. We'll notify you when it ships!`;
-    
     console.log(`📧 Customer confirmation for ${order.customer_email}:`);
     console.log(msg);
-    
     return true;
 }
 
@@ -89,7 +85,7 @@ function sendCustomerConfirmation(order) {
 app.post('/api/create-checkout-session', async (req, res) => {
     try {
         const { items, address, customerEmail, customerName, customerPhone } = req.body;
-        
+
         if (!items || !items.length) {
             return res.status(400).json({ error: 'Cart is empty' });
         }
@@ -101,11 +97,10 @@ app.post('/api/create-checkout-session', async (req, res) => {
 
         const orderId = 'LC-' + Date.now().toString(36).toUpperCase();
 
-        // Save pending order to database
         const orderData = {
             order_id: orderId,
             customer_email: customerEmail || 'guest@luxecraft.com',
-            customer_name: `${address.firstName} ${address.lastName}`,
+            customer_name: customerName || `${address.firstName} ${address.lastName}`,
             customer_phone: address.phone,
             shipping_address: JSON.stringify(address),
             items: JSON.stringify(items),
@@ -129,7 +124,6 @@ app.post('/api/create-checkout-session', async (req, res) => {
                     return res.status(500).json({ error: 'Failed to create order' });
                 }
 
-                // Create Stripe Checkout Session
                 const session = await stripe.checkout.sessions.create({
                     payment_method_types: ['card'],
                     line_items: items.map(item => ({
@@ -139,7 +133,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
                                 name: item.name,
                                 description: item.desc,
                             },
-                            unit_amount: item.price * 100, // cents
+                            unit_amount: item.price * 100,
                         },
                         quantity: item.qty,
                     })),
@@ -153,7 +147,6 @@ app.post('/api/create-checkout-session', async (req, res) => {
                     }
                 });
 
-                // Update order with Stripe session ID
                 db.run(`UPDATE orders SET stripe_session_id = ? WHERE order_id = ?`, 
                     [session.id, orderId]);
 
@@ -177,11 +170,9 @@ app.post('/api/verify-payment', async (req, res) => {
     try {
         const { session_id, order_id } = req.body;
 
-        // Retrieve Stripe session
         const session = await stripe.checkout.sessions.retrieve(session_id);
-        
+
         if (session.payment_status === 'paid') {
-            // Update order in database
             db.run(`UPDATE orders SET payment_status = 'paid', status = 'processing' WHERE order_id = ?`, 
                 [order_id], 
                 function(err) {
@@ -189,13 +180,12 @@ app.post('/api/verify-payment', async (req, res) => {
                         return res.status(500).json({ error: 'Database update failed' });
                     }
 
-                    // Fetch full order for notifications
                     db.get(`SELECT * FROM orders WHERE order_id = ?`, [order_id], (err, order) => {
                         if (!err && order) {
-                            order.items = JSON.parse(order.items);
-                            order.shipping_address = JSON.parse(order.shipping_address);
-                            
-                            // Send notifications
+                            try {
+                                order.items = JSON.parse(order.items);
+                                order.shipping_address = JSON.parse(order.shipping_address);
+                            } catch(e) {}
                             sendOrderNotification(order);
                             sendCustomerConfirmation(order);
                         }
@@ -224,9 +214,9 @@ app.get('/api/order/:orderId', (req, res) => {
     db.get(`SELECT * FROM orders WHERE order_id = ?`, [req.params.orderId], (err, row) => {
         if (err) return res.status(500).json({ error: err.message });
         if (!row) return res.status(404).json({ error: 'Order not found' });
-        
-        row.items = JSON.parse(row.items);
-        row.shipping_address = JSON.parse(row.shipping_address);
+
+        try { row.items = JSON.parse(row.items); } catch(e) {}
+        try { row.shipping_address = JSON.parse(row.shipping_address); } catch(e) {}
         res.json(row);
     });
 });
@@ -250,7 +240,7 @@ app.get('/api/orders', (req, res) => {
    ============================================ */
 app.post('/api/inquiry', (req, res) => {
     const { name, email, phone, message } = req.body;
-    
+
     if (!name || !email || !message) {
         return res.status(400).json({ error: 'Name, email and message are required' });
     }
@@ -259,9 +249,9 @@ app.post('/api/inquiry', (req, res) => {
         [name, email, phone || '', message],
         function(err) {
             if (err) return res.status(500).json({ error: err.message });
-            
+
             console.log(`📩 New inquiry from ${name} (${email}): ${message}`);
-            
+
             res.json({ 
                 success: true, 
                 message: 'Inquiry received! We will contact you shortly.',
