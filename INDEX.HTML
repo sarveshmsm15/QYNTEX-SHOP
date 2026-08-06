@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUXE CRAFT | 3D Neo-Morphic Store</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Stripe.js -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <!-- Backend API Config -->
+    <script>
+        window.API_BASE = 'http://localhost:3000/api';
+        window.STRIPE_PUBLISHABLE_KEY = 'pk_test_your_stripe_publishable_key_here'; // REPLACE THIS
+        window.WHATSAPP_NUMBER = '1234567890'; // REPLACE WITH YOUR NUMBER (country code, no +)
+    </script>
+<base target="_blank">
+</head>
+<body>
+
+    <!-- Promo Bar -->
+    <div class="promo-bar" id="promoBar">
+        <span>🚚 Free shipping on orders over $150</span>
+        <span>✨ New arrivals just dropped</span>
+        <span>🔒 Secure checkout guaranteed</span>
+        <button type="button" class="promo-close" id="promoClose">×</button>
+    </div>
+
+    <!-- 3D Floating Background Orbs -->
+    <div class="floating-orb orb-1"></div>
+    <div class="floating-orb orb-2"></div>
+    <div class="floating-orb orb-3"></div>
+    <div class="floating-orb orb-4"></div>
+    <div class="floating-orb orb-5"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-left">
+            <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+                <span></span><span></span><span></span>
+            </button>
+            <div class="logo" id="navLogo" style="cursor:pointer;">LUXE CRAFT</div>
+        </div>
+
+        <ul class="nav-links" id="navLinks">
+            <li><a href="#kitchen" data-nav="kitchen">Kitchen</a></li>
+            <li><a href="#ceramics" data-nav="ceramics">Ceramics</a></li>
+            <li><a href="#leather" data-nav="leather">Leather</a></li>
+            <li><a href="#fashion" data-nav="fashion">Fashion</a></li>
+            <li><a href="#about" data-nav="about">About</a></li>
+        </ul>
+
+        <div class="nav-actions">
+            <button type="button" class="cart-icon search-icon" id="searchToggle" title="Search" aria-label="Search">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+            </button>
+            <button type="button" class="cart-icon user-icon" id="userToggle" title="Account" aria-label="Account">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </button>
+            <button type="button" class="cart-icon" id="cartToggle" title="Cart" aria-label="Cart">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <path d="M16 10a4 4 0 0 1-8 0"></path>
+                </svg>
+                <span class="cart-count" id="cartCount">0</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay">
+        <div class="mobile-menu">
+            <button type="button" class="mobile-close" id="mobileClose">×</button>
+            <div class="mobile-logo">LUXE CRAFT</div>
+            <a href="#kitchen" data-nav="kitchen">Kitchen</a>
+            <a href="#ceramics" data-nav="ceramics">Ceramics</a>
+            <a href="#leather" data-nav="leather">Leather</a>
+            <a href="#fashion" data-nav="fashion">Fashion</a>
+            <a href="#about" data-nav="about">About</a>
+            <div class="mobile-divider"></div>
+            <a href="#" id="mobileOrdersLink">📦 My Orders</a>
+            <a href="#" id="mobileWishlistLink">❤️ Wishlist</a>
+            <a href="#" id="mobileSettingsLink">⚙️ Settings</a>
+            <div class="mobile-divider"></div>
+            <button type="button" class="neo-btn primary" id="mobileLoginBtn" style="width:100%;">Sign In / Sign Up</button>
+        </div>
+    </div>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-container">
+            <button type="button" class="search-close" id="searchClose">×</button>
+            <div class="search-box">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" id="searchInput" placeholder="Search products..." autocomplete="off">
+            </div>
+            <div class="search-results" id="searchResults"></div>
+        </div>
+    </div>
+
+    <!-- ==================== PAGE: SHOP ==================== -->
+    <div id="shopView" class="page-view active">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <div class="hero-badge">✨ 100+ Curated Products</div>
+                <h1>Craft Your Lifestyle<br>in 3D Reality</h1>
+                <p>Discover our curated collection of neomorphic kitchenware, artisan ceramics, premium leather goods, and fashion essentials.</p>
+                <div class="hero-buttons">
+                    <button type="button" class="neo-btn primary" id="heroExplore">Explore Collection</button>
+                    <button type="button" class="neo-btn" id="heroNew">New Arrivals</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Trust Badges -->
+        <section class="trust-section">
+            <div class="trust-grid">
+                <div class="trust-item">
+                    <div class="trust-icon">🚚</div>
+                    <div><strong>Free Shipping</strong><span>On orders over $150</span></div>
+                </div>
+                <div class="trust-item">
+                    <div class="trust-icon">🔒</div>
+                    <div><strong>Secure Payment</strong><span>256-bit SSL encryption</span></div>
+                </div>
+                <div class="trust-item">
+                    <div class="trust-icon">↩️</div>
+                    <div><strong>Easy Returns</strong><span>30-day hassle free</span></div>
+                </div>
+                <div class="trust-item">
+                    <div class="trust-icon">🎧</div>
+                    <div><strong>24/7 Support</strong><span>Always here to help</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Kitchenware Section -->
+        <section class="section" id="kitchen">
+            <div class="section-header reveal">
+                <span class="category-label">Kitchen & Dining</span>
+                <h2>Kitchen Essentials</h2>
+                <p>Neomorphic spoons, tumblers, water bottles, and ceramic plates designed for modern living.</p>
+            </div>
+            <div class="products-grid" id="kitchenGrid"></div>
+        </section>
+
+        <!-- Ceramics Section -->
+        <section class="section" id="ceramics">
+            <div class="section-header reveal">
+                <span class="category-label">Artisan Ceramics</span>
+                <h2>Handcrafted Ceramics</h2>
+                <p>Every piece tells a story. Explore our collection of artistic plates, cups, and bowls.</p>
+            </div>
+            <div class="products-grid" id="ceramicsGrid"></div>
+        </section>
+
+        <!-- Leather Section -->
+        <section class="section" id="leather">
+            <div class="section-header reveal">
+                <span class="category-label">Premium Leather</span>
+                <h2>Leather Goods</h2>
+                <p>Purses, laptop bags, shoes, and gym bags crafted from the finest full-grain leather.</p>
+            </div>
+            <div class="products-grid" id="leatherGrid"></div>
+        </section>
+
+        <!-- Fashion Bento Grid Section -->
+        <section class="section" id="fashion">
+            <div class="section-header reveal">
+                <span class="category-label">Fashion</span>
+                <h2>Style Collection</h2>
+                <p>Curated fashion pieces displayed in our signature Bento Grid layout.</p>
+            </div>
+            <div class="bento-grid" id="fashionGrid"></div>
+        </section>
+
+        <!-- Newsletter Section -->
+        <section class="section newsletter-section" id="newsletter">
+            <div class="newsletter-card reveal">
+                <h2>Join the Inner Circle</h2>
+                <p>Subscribe for exclusive drops, early access to sales, and 10% off your first order.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" class="neo-input" placeholder="Enter your email" id="newsletterEmail" required>
+                    <button type="submit" class="neo-btn primary" id="newsletterBtn">Subscribe</button>
+                </form>
+                <p class="newsletter-note">No spam. Unsubscribe anytime.</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- ==================== PAGE: ORDERS ==================== -->
+    <div id="ordersView" class="page-view">
+        <div class="orders-header">
+            <div class="section-header" style="text-align:left; margin-bottom:10px;">
+                <span class="category-label">Account</span>
+                <h2>My Orders</h2>
+                <p>Track, manage, and reorder your purchases.</p>
+            </div>
+            <div class="orders-stats" id="ordersStats"></div>
+            <div class="orders-tabs" id="ordersTabs">
+                <button class="neo-btn active" data-filter="all">All Orders</button>
+                <button class="neo-btn" data-filter="processing">Processing</button>
+                <button class="neo-btn" data-filter="shipped">Shipped</button>
+                <button class="neo-btn" data-filter="delivered">Delivered</button>
+                <button class="neo-btn" data-filter="cancelled">Cancelled</button>
+            </div>
+            <div id="ordersList"></div>
+        </div>
+    </div>
+
+    <!-- ==================== PAGE: WISHLIST ==================== -->
+    <div id="wishlistView" class="page-view">
+        <div class="section" style="padding-top:140px;">
+            <div class="section-header">
+                <span class="category-label">Favorites</span>
+                <h2>My Wishlist</h2>
+                <p>Items you have saved for later.</p>
+            </div>
+            <div class="products-grid" id="wishlistGrid"></div>
+            <div id="wishlistEmpty" class="empty-state" style="display:none;">
+                <div class="empty-state-icon">❤️</div>
+                <h3>Your wishlist is empty</h3>
+                <p>Save items you love to find them easily later.</p>
+                <button type="button" class="neo-btn primary" onclick="showPage('shop'); scrollToSection('kitchen');">Start Exploring</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== PAGE: SETTINGS ==================== -->
+    <div id="settingsView" class="page-view">
+        <div class="settings-layout">
+            <div class="settings-sidebar">
+                <div class="settings-nav">
+                    <button class="settings-nav-btn active" data-tab="profile">👤 Profile</button>
+                    <button class="settings-nav-btn" data-tab="addresses">📍 Addresses</button>
+                    <button class="settings-nav-btn" data-tab="notifications">🔔 Notifications</button>
+                    <button class="settings-nav-btn" data-tab="security">🔒 Security</button>
+                    <button class="settings-nav-btn" data-tab="preferences">⚙️ Preferences</button>
+                </div>
+            </div>
+            <div class="settings-panels">
+                <!-- Profile -->
+                <div class="settings-panel active" id="panel-profile">
+                    <div class="settings-card">
+                        <h3>Profile Information</h3>
+                        <p class="auth-subtitle">Update your personal details</p>
+                        <div class="form-row">
+                            <div class="form-group"><label>First Name</label><input type="text" class="neo-input" id="setFirstName"></div>
+                            <div class="form-group"><label>Last Name</label><input type="text" class="neo-input" id="setLastName"></div>
+                        </div>
+                        <div class="form-group"><label>Email Address</label><input type="email" class="neo-input" id="setEmail"></div>
+                        <div class="form-group"><label>Phone Number</label><input type="tel" class="neo-input" id="setPhone" placeholder="+1 (555) 000-0000"></div>
+                        <button type="button" class="neo-btn primary" id="saveProfileBtn" style="margin-top:10px;">Save Changes</button>
+                    </div>
+                </div>
+                <!-- Addresses -->
+                <div class="settings-panel" id="panel-addresses">
+                    <div class="settings-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                            <h3>Saved Addresses</h3>
+                            <button type="button" class="neo-btn" id="addAddressBtn">+ Add New</button>
+                        </div>
+                        <div id="addressFormInline" style="display:none; margin-bottom:20px; padding:20px; border-radius:16px; background:rgba(94,64,116,0.03);">
+                            <h4 style="margin-bottom:12px; font-size:14px;">New Address</h4>
+                            <div class="form-row">
+                                <div class="form-group"><label>First Name *</label><input type="text" class="neo-input" id="newAddrFirstName"></div>
+                                <div class="form-group"><label>Last Name *</label><input type="text" class="neo-input" id="newAddrLastName"></div>
+                            </div>
+                            <div class="form-group"><label>Street Address *</label><input type="text" class="neo-input" id="newAddrStreet"></div>
+                            <div class="form-group"><label>Apt / Suite</label><input type="text" class="neo-input" id="newAddrApt"></div>
+                            <div class="form-row three-col">
+                                <div class="form-group"><label>City *</label><input type="text" class="neo-input" id="newAddrCity"></div>
+                                <div class="form-group"><label>State *</label><input type="text" class="neo-input" id="newAddrState"></div>
+                                <div class="form-group"><label>ZIP *</label><input type="text" class="neo-input" id="newAddrZip"></div>
+                            </div>
+                            <div class="form-group"><label>Country *</label>
+                                <select class="neo-input neo-select" id="newAddrCountry">
+                                    <option value="US">United States</option><option value="CA">Canada</option><option value="UK">United Kingdom</option>
+                                    <option value="AU">Australia</option><option value="DE">Germany</option><option value="FR">France</option>
+                                    <option value="JP">Japan</option><option value="IN">India</option><option value="BR">Brazil</option><option value="MX">Mexico</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; gap:10px; margin-top:10px;">
+                                <button type="button" class="neo-btn primary" id="saveNewAddressBtn">Save Address</button>
+                                <button type="button" class="neo-btn" id="cancelNewAddressBtn">Cancel</button>
+                            </div>
+                        </div>
+                        <div id="settingsAddressesList"></div>
+                    </div>
+                </div>
+                <!-- Notifications -->
+                <div class="settings-panel" id="panel-notifications">
+                    <div class="settings-card">
+                        <h3>Notification Preferences</h3>
+                        <p class="auth-subtitle">Choose how you want to be notified</p>
+                        <div class="toggle-row"><div><strong>Order Updates</strong><p style="font-size:13px; opacity:0.6;">Receive notifications about your order status</p></div><div class="toggle-switch active" data-setting="orders"></div></div>
+                        <div class="toggle-row"><div><strong>Shipping Alerts</strong><p style="font-size:13px; opacity:0.6;">Get notified when your order ships</p></div><div class="toggle-switch active" data-setting="shipping"></div></div>
+                        <div class="toggle-row"><div><strong>Promotions & Sales</strong><p style="font-size:13px; opacity:0.6;">Exclusive deals and seasonal offers</p></div><div class="toggle-switch" data-setting="promotions"></div></div>
+                        <div class="toggle-row"><div><strong>Newsletter</strong><p style="font-size:13px; opacity:0.6;">Weekly curated content and drops</p></div><div class="toggle-switch active" data-setting="newsletter"></div></div>
+                        <button type="button" class="neo-btn primary" id="saveNotifBtn" style="margin-top:10px;">Save Preferences</button>
+                    </div>
+                </div>
+                <!-- Security -->
+                <div class="settings-panel" id="panel-security">
+                    <div class="settings-card">
+                        <h3>Security</h3>
+                        <p class="auth-subtitle">Manage your password and account security</p>
+                        <div class="form-group"><label>Current Password</label><input type="password" class="neo-input" id="secCurrentPass" placeholder="••••••••"></div>
+                        <div class="form-group"><label>New Password</label><input type="password" class="neo-input" id="secNewPass" placeholder="Min 8 characters"></div>
+                        <div class="form-group"><label>Confirm New Password</label><input type="password" class="neo-input" id="secConfirmPass" placeholder="••••••••"></div>
+                        <button type="button" class="neo-btn primary" id="changePassBtn">Update Password</button>
+                    </div>
+                    <div class="settings-card" style="margin-top:20px;">
+                        <h3>Login History</h3>
+                        <div id="loginHistoryList" style="margin-top:12px; opacity:0.8; font-size:14px; line-height:2;"></div>
+                    </div>
+                </div>
+                <!-- Preferences -->
+                <div class="settings-panel" id="panel-preferences">
+                    <div class="settings-card">
+                        <h3>Regional Preferences</h3>
+                        <div class="form-group"><label>Currency</label><select class="neo-input neo-select" id="prefCurrency"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="INR">INR (₹)</option></select></div>
+                        <div class="form-group"><label>Language</label><select class="neo-input neo-select" id="prefLanguage"><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option></select></div>
+                        <button type="button" class="neo-btn primary" id="savePrefsBtn" style="margin-top:10px;">Save Preferences</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Sidebar -->
+    <div class="cart-overlay" id="cartOverlay">
+        <div class="cart-sidebar" id="cartSidebar">
+            <div class="cart-header">
+                <h2>Your Cart <span id="cartItemCount" style="font-size:14px; opacity:0.5; margin-left:8px;">(0 items)</span></h2>
+                <button type="button" class="close-cart" id="cartClose">×</button>
+            </div>
+            <div id="cartItems"></div>
+            <div class="cart-footer">
+                <div class="cart-total-row"><span>Subtotal</span><span id="cartSubtotal">$0.00</span></div>
+                <div class="cart-total-row"><span>Shipping</span><span id="cartShipping">$0.00</span></div>
+                <div class="cart-total-row" id="cartDiscountRow" style="display:none;"><span>Discount</span><span id="cartDiscount">-$0.00</span></div>
+                <div class="cart-total-row grand"><span>Total</span><span id="cartTotal">$0.00</span></div>
+                <button type="button" class="neo-btn primary checkout-btn" id="checkoutBtn">Buy Now — Checkout</button>
+                <button type="button" class="neo-btn continue-btn" id="continueShoppingBtn">Continue Shopping</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div class="modal-overlay" id="authOverlay">
+        <div class="modal-container auth-modal">
+            <button type="button" class="close-cart modal-close" id="authClose">×</button>
+            <div class="auth-tabs">
+                <button type="button" class="auth-tab active" data-tab="login" id="tabLogin">Sign In</button>
+                <button type="button" class="auth-tab" data-tab="signup" id="tabSignup">Sign Up</button>
+            </div>
+            <form class="auth-form" id="loginFormElement">
+                <h3>Welcome Back</h3>
+                <p class="auth-subtitle">Sign in to access your orders and saved addresses</p>
+                <div class="form-group"><label>Email Address</label><input type="email" class="neo-input" placeholder="you@example.com" id="loginEmail" required></div>
+                <div class="form-group"><label>Password</label><input type="password" class="neo-input" placeholder="••••••••" id="loginPassword" required minlength="1"></div>
+                <div class="form-options">
+                    <label class="neo-checkbox"><input type="checkbox" id="rememberMe"><span class="checkmark"></span>Remember me</label>
+                    <a href="#" class="forgot-link">Forgot password?</a>
+                </div>
+                <button type="submit" class="neo-btn primary" style="width:100%; margin-top:20px;" id="loginSubmit">Sign In</button>
+                <div class="auth-divider"><span>or</span></div>
+                <button type="button" class="neo-btn social-btn" style="width:100%;" id="googleLogin">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                    Continue with Google
+                </button>
+                <div class="guest-checkout">
+                    <p>Do not want to create an account?</p>
+                    <button type="button" class="neo-btn" style="width:100%; margin-top:10px;" id="guestCheckoutBtn">Continue as Guest →</button>
+                </div>
+            </form>
+            <form class="auth-form hidden" id="signupFormElement">
+                <h3>Create Account</h3>
+                <p class="auth-subtitle">Join LUXE CRAFT for exclusive deals and faster checkout</p>
+                <div class="form-row">
+                    <div class="form-group"><label>First Name</label><input type="text" class="neo-input" placeholder="John" id="signupFirstName" required></div>
+                    <div class="form-group"><label>Last Name</label><input type="text" class="neo-input" placeholder="Doe" id="signupLastName" required></div>
+                </div>
+                <div class="form-group"><label>Email Address</label><input type="email" class="neo-input" placeholder="you@example.com" id="signupEmail" required></div>
+                <div class="form-group"><label>Password</label><input type="password" class="neo-input" placeholder="Min 8 characters" id="signupPassword" required minlength="8"></div>
+                <div class="form-group"><label>Confirm Password</label><input type="password" class="neo-input" placeholder="••••••••" id="signupConfirmPassword" required></div>
+                <label class="neo-checkbox"><input type="checkbox" id="agreeTerms"><span class="checkmark"></span>I agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a></label>
+                <button type="submit" class="neo-btn primary" style="width:100%; margin-top:20px;" id="signupSubmit">Create Account</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Address Modal -->
+    <div class="modal-overlay" id="addressOverlay">
+        <div class="modal-container address-modal">
+            <button type="button" class="close-cart modal-close" id="addressClose">×</button>
+            <div class="progress-steps">
+                <div class="step completed"><span>1</span><p>Cart</p></div>
+                <div class="step-line"></div>
+                <div class="step active"><span>2</span><p>Shipping</p></div>
+                <div class="step-line"></div>
+                <div class="step"><span>3</span><p>Payment</p></div>
+            </div>
+            <form id="addressFormElement">
+                <div class="modal-header"><h3>Shipping Address</h3><p class="auth-subtitle">Where should we deliver your order?</p></div>
+                <div class="form-row">
+                    <div class="form-group"><label>First Name *</label><input type="text" class="neo-input" placeholder="John" id="addrFirstName" required></div>
+                    <div class="form-group"><label>Last Name *</label><input type="text" class="neo-input" placeholder="Doe" id="addrLastName" required></div>
+                </div>
+                <div class="form-group"><label>Phone Number *</label><input type="tel" class="neo-input" placeholder="+1 (555) 000-0000" id="addrPhone" required></div>
+                <div class="form-group"><label>Street Address *</label><input type="text" class="neo-input" placeholder="123 Main Street" id="addrStreet" required></div>
+                <div class="form-group"><label>Apt, Suite, etc. (Optional)</label><input type="text" class="neo-input" placeholder="Apt 4B" id="addrApt"></div>
+                <div class="form-row three-col">
+                    <div class="form-group"><label>City *</label><input type="text" class="neo-input" placeholder="New York" id="addrCity" required></div>
+                    <div class="form-group"><label>State *</label><input type="text" class="neo-input" placeholder="NY" id="addrState" required></div>
+                    <div class="form-group"><label>ZIP Code *</label><input type="text" class="neo-input" placeholder="10001" id="addrZip" required></div>
+                </div>
+                <div class="form-group"><label>Country *</label>
+                    <select class="neo-input neo-select" id="addrCountry" required>
+                        <option value="">Select Country</option>
+                        <option value="US" selected>United States</option><option value="CA">Canada</option><option value="UK">United Kingdom</option>
+                        <option value="AU">Australia</option><option value="DE">Germany</option><option value="FR">France</option>
+                        <option value="JP">Japan</option><option value="IN">India</option><option value="BR">Brazil</option><option value="MX">Mexico</option>
+                    </select>
+                </div>
+                <label class="neo-checkbox"><input type="checkbox" id="saveAddress" checked><span class="checkmark"></span>Save this address for future orders</label>
+                <div class="modal-actions">
+                    <button type="button" class="neo-btn" id="addressBack">← Back</button>
+                    <button type="submit" class="neo-btn primary" id="addressContinue">Continue to Payment →</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Checkout / Payment Modal -->
+    <div class="modal-overlay" id="checkoutOverlay">
+        <div class="modal-container checkout-modal">
+            <button type="button" class="close-cart modal-close" id="checkoutClose">×</button>
+            <div class="progress-steps">
+                <div class="step completed"><span>1</span><p>Cart</p></div>
+                <div class="step-line"></div>
+                <div class="step completed"><span>2</span><p>Shipping</p></div>
+                <div class="step-line"></div>
+                <div class="step active"><span>3</span><p>Payment</p></div>
+            </div>
+            <div class="modal-header"><h3>Order Summary</h3><p class="auth-subtitle">Review your order and complete payment</p></div>
+            <div class="checkout-summary">
+                <div class="summary-section"><h4>📦 Items</h4><div id="checkoutItems"></div></div>
+                <div class="summary-section">
+                    <h4>📍 Shipping To</h4>
+                    <div class="address-display" id="checkoutAddressDisplay"><p>Please add a shipping address</p></div>
+                    <button type="button" class="neo-btn" style="margin-top:10px; padding:8px 16px; font-size:12px;" id="editAddressBtn">Edit Address</button>
+                </div>
+                <div class="summary-section">
+                    <h4>💳 Payment Method</h4>
+                    <div class="payment-methods">
+                        <label class="payment-option active"><input type="radio" name="payment" value="card" checked><div class="payment-card"><span class="payment-icon">💳</span><span>Credit / Debit Card</span></div></label>
+                        <label class="payment-option"><input type="radio" name="payment" value="paypal"><div class="payment-card"><span class="payment-icon">🅿️</span><span>PayPal</span></div></label>
+                        <label class="payment-option"><input type="radio" name="payment" value="apple"><div class="payment-card"><span class="payment-icon">🍎</span><span>Apple Pay</span></div></label>
+                    </div>
+                </div>
+                <div class="summary-section totals">
+                    <div class="total-row"><span>Subtotal</span><span id="checkoutSubtotal">$0.00</span></div>
+                    <div class="total-row"><span>Shipping</span><span id="checkoutShipping">$0.00</span></div>
+                    <div class="total-row"><span>Tax (8%)</span><span id="checkoutTax">$0.00</span></div>
+                    <div class="total-row grand"><span>Total</span><span id="checkoutTotal">$0.00</span></div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="neo-btn" id="checkoutBack">← Back</button>
+                <button type="button" class="neo-btn primary pulse-btn" id="placeOrderBtn">Place Order →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal-overlay" id="successOverlay">
+        <div class="modal-container success-modal">
+            <div class="success-icon">✅</div>
+            <h2>Order Placed!</h2>
+            <p class="auth-subtitle">Thank you for shopping with LUXE CRAFT</p>
+            <div class="order-details" id="orderDetails"></div>
+            <button type="button" class="neo-btn primary" style="width:100%; margin-top:24px;" id="successClose">Continue Shopping</button>
+        </div>
+    </div>
+
+    <!-- Quick View Modal -->
+    <div class="modal-overlay" id="quickViewOverlay">
+        <div class="modal-container quick-view-modal">
+            <button type="button" class="close-cart modal-close" id="quickViewClose">×</button>
+            <div class="quick-view-content" id="quickViewContent"></div>
+        </div>
+    </div>
+
+    <!-- User Account Dropdown -->
+    <div class="user-dropdown" id="userDropdown">
+        <div class="user-info">
+            <div class="user-avatar" id="userAvatar">👤</div>
+            <div><p class="user-name" id="userName">Guest</p><p class="user-email" id="userEmail">Not signed in</p></div>
+        </div>
+        <div class="user-menu">
+            <button type="button" id="menuOrders">📦 My Orders</button>
+            <button type="button" id="menuAddresses">📍 Saved Addresses</button>
+            <button type="button" id="menuWishlist">❤️ Wishlist <span class="menu-badge" id="wishlistBadge">0</span></button>
+            <button type="button" id="menuSettings">⚙️ Settings</button>
+            <div class="menu-divider"></div>
+            <button type="button" id="logoutBtn" style="color:#c44;">🚪 Sign Out</button>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Back to Top -->
+    <button type="button" class="back-to-top" id="backToTop" aria-label="Back to top">↑</button>
+
+    <!-- WhatsApp Floating Button -->
+    <a href="#" id="whatsappBtn" class="whatsapp-float" title="Chat on WhatsApp">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+    </a>
+
+    <!-- WhatsApp Inquiry Modal -->
+    <div class="modal-overlay" id="whatsappOverlay">
+        <div class="modal-container" style="max-width: 420px;">
+            <button type="button" class="close-cart modal-close" id="whatsappClose">×</button>
+            <div style="text-align:center; margin-bottom:20px;">
+                <div style="font-size:48px; margin-bottom:8px;">💬</div>
+                <h3>Send us a Message</h3>
+                <p class="auth-subtitle">We typically reply within minutes on WhatsApp</p>
+            </div>
+            <form id="whatsappForm">
+                <div class="form-group">
+                    <label>Your Name</label>
+                    <input type="text" class="neo-input" id="waName" placeholder="John Doe" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" class="neo-input" id="waEmail" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone (Optional)</label>
+                    <input type="tel" class="neo-input" id="waPhone" placeholder="+1 234 567 8900">
+                </div>
+                <div class="form-group">
+                    <label>Message</label>
+                    <textarea class="neo-input" id="waMessage" rows="3" placeholder="Hi, I have a question about..." required style="resize:vertical; min-height:80px;"></textarea>
+                </div>
+                <button type="submit" class="neo-btn primary" style="width:100%;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px;"><path d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z"/></svg>
+                    Send via WhatsApp
+                </button>
+            </form>
+            <div style="text-align:center; margin-top:16px; padding-top:16px; border-top:1px solid rgba(94,64,116,0.1);">
+                <p style="font-size:12px; opacity:0.6;">Or email us at <a href="mailto:support@luxecraft.com" style="color:var(--primary);">support@luxecraft.com</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer" id="about">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <div class="logo">LUXE CRAFT</div>
+                <p>Redefining everyday objects through the lens of neomorphic design. Every product is a statement of minimal luxury.</p>
+                <div class="social-links">
+                    <a href="#" class="social-icon" aria-label="Facebook">📘</a>
+                    <a href="#" class="social-icon" aria-label="Instagram">📸</a>
+                    <a href="#" class="social-icon" aria-label="Twitter">🐦</a>
+                    <a href="#" class="social-icon" aria-label="YouTube">▶️</a>
+                </div>
+            </div>
+            <div class="footer-links">
+                <h4>Shop</h4>
+                <ul>
+                    <li><a href="#kitchen" data-nav="kitchen">Kitchen</a></li>
+                    <li><a href="#ceramics" data-nav="ceramics">Ceramics</a></li>
+                    <li><a href="#leather" data-nav="leather">Leather</a></li>
+                    <li><a href="#fashion" data-nav="fashion">Fashion</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Careers</a></li>
+                    <li><a href="#">Press</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Shipping</a></li>
+                    <li><a href="#">Returns</a></li>
+                    <li><a href="#">Privacy</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">© 2026 LUXE CRAFT. All rights reserved. Crafted with ❤️ by WILDA.</div>
+    </footer>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
