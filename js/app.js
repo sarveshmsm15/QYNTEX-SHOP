@@ -160,16 +160,16 @@ async function apiPost(endpoint, data) {
     const res = await fetch(`${window.API_BASE}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        credentials: 'include'
     });
     return res.json();
 }
 
 async function apiGet(endpoint) {
-    const res = await fetch(`${window.API_BASE}${endpoint}`);
+    const res = await fetch(`${window.API_BASE}${endpoint}`, { credentials: 'include' });
     return res.json();
 }
-
 
 
 /* ============================================
@@ -532,12 +532,21 @@ function handleSignup() {
 }
 
 function handleLogout() {
-    currentUser = null;
-    saveUser();
-    updateUserUI();
-    showToast('Signed out successfully', 'info');
-    document.getElementById('userDropdown').classList.remove('active');
-    showPage('shop');
+    fetch('http://localhost:3000/api/logout', { credentials: 'include' })
+        .then(() => {
+            currentUser = null;
+            saveUser();
+            updateUserUI();
+            showToast('Signed out successfully', 'info');
+            document.getElementById('userDropdown').classList.remove('active');
+            showPage('shop');
+        })
+        .catch(() => {
+            currentUser = null;
+            saveUser();
+            updateUserUI();
+            showPage('shop');
+        });
 }
 
 function updateUserUI() {
@@ -1036,7 +1045,25 @@ async function fetchBackendOrders() {
         console.log('Backend orders not available, using local');
     }
 }
-
+async function checkSession() {
+    try {
+        const res = await fetch('http://localhost:3000/api/user', { credentials: 'include' });
+        const data = await res.json();
+        if (data.loggedIn && data.user) {
+            currentUser = {
+                id: data.user.id,
+                email: data.user.email,
+                name: data.user.name,
+                photo: data.user.photo
+            };
+            saveUser();
+            updateUserUI();
+            addLoginHistory('MacBook Pro — Chrome');
+        }
+    } catch (e) {
+        console.log('No active session');
+    }
+}
 /* ============================================
    EVENT LISTENERS
    ============================================ */
@@ -1109,7 +1136,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('tabSignup').addEventListener('click', () => switchAuthTab('signup'));
     document.getElementById('loginSubmit').addEventListener('click', handleLogin);
     document.getElementById('signupSubmit').addEventListener('click', handleSignup);
-    document.getElementById('googleLogin').addEventListener('click', () => showToast('Google login coming soon', 'info'));
+    document.getElementById('googleLogin').addEventListener('click', () => {
+    window.location.href = 'http://localhost:3000/auth/google';
+});
     document.getElementById('guestCheckoutBtn').addEventListener('click', () => { closeAuthModal(); setTimeout(() => openAddressModal(), 300); });
 
     // Address
@@ -1279,6 +1308,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Backend integrations
+    checkSession();
     handlePaymentReturn();
     initWhatsApp();
     fetchBackendOrders();

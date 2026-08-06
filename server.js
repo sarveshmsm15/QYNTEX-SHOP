@@ -1,6 +1,6 @@
 /* ============================================
    LUXE CRAFT BACKEND
-   Express + SQLite + Stripe + WhatsApp Ready
+   Express + SQLite + Stripe + Google OAuth 2.0
    ============================================ */
 
 require('dotenv').config();
@@ -11,13 +11,90 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
+// Passport & Session
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const session = require('express-session');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: true,
+    credentials: true
+}));
 app.use(express.json());
-app.use(express.static(path.join(__dirname))); // Serve frontend files
+app.use(express.static(path.join(__dirname)));
+
+// Session setup
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'luxe-craft-secret-2026',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: false,
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
+// Passport setup
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser((user, done) => {
+    done(null, user);
+});
+
+passport.deserializeUser((user, done) => {
+    done(null, user);
+});
+
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: '/auth/google/callback'
+}, (accessToken, refreshToken, profile, done) => {
+    const user = {
+        id: profile.id,
+        email: profile.emails[0].value,
+        name: profile.displayName,
+        photo: profile.photos[0]?.value || null,
+        provider: 'google'
+    };
+    return done(null, user);
+}));
+
+/* ============================================
+   GOOGLE AUTH ROUTES
+   ============================================ */
+app.get('/auth/google',
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+app.get('/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/index.html?auth=failed' }),
+    (req, res) => {
+        res.redirect('/index.html?auth=success');
+    }
+);
+
+app.get('/api/user', (req, res) => {
+    if (req.isAuthenticated && req.isAuthenticated()) {
+        res.json({ loggedIn: true, user: req.user });
+    } else {
+        res.json({ loggedIn: false });
+    }
+});
+
+app.get('/api/logout', (req, res) => {
+    req.logout((err) => {
+        if (err) return res.status(500).json({ error: 'Logout failed' });
+        req.session.destroy();
+        res.json({ success: true, message: 'Logged out' });
+    });
+});
 
 // Initialize SQLite Database
 const db = new sqlite3.Database('./database.sqlite', (err) => {
@@ -67,8 +144,6 @@ function sendOrderNotification(order) {
     console.log(msg);
     console.log('='.repeat(50) + '\n');
 
-    // TODO: Add Twilio SMS / SendGrid Email / WhatsApp Business API here
-
     return true;
 }
 
@@ -96,6 +171,46 @@ app.post('/api/create-checkout-session', async (req, res) => {
         const total = subtotal + shipping + tax;
 
         const orderId = 'LC-' + Date.now().toString(36).toUpperCase();
+
+        const lineItems = items.map(item => ({
+            price_data: {
+                currency: 'usd',
+                product_data: {
+                    name: item.name,
+                    description: item.desc,
+                },
+                unit_amount: Math.round(item.price * 100),
+            },
+            quantity: item.qty,
+        }));
+
+        if (shipping > 0) {
+            lineItems.push({
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: 'Shipping',
+                        description: 'Standard delivery',
+                    },
+                    unit_amount: Math.round(shipping * 100),
+                },
+                quantity: 1,
+            });
+        }
+
+        if (tax > 0) {
+            lineItems.push({
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: 'Tax (8%)',
+                        description: 'Sales tax',
+                    },
+                    unit_amount: Math.round(tax * 100),
+                },
+                quantity: 1,
+            });
+        }
 
         const orderData = {
             order_id: orderId,
@@ -126,17 +241,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
 
                 const session = await stripe.checkout.sessions.create({
                     payment_method_types: ['card'],
-                    line_items: items.map(item => ({
-                        price_data: {
-                            currency: 'usd',
-                            product_data: {
-                                name: item.name,
-                                description: item.desc,
-                            },
-                            unit_amount: item.price * 100,
-                        },
-                        quantity: item.qty,
-                    })),
+                    line_items: lineItems,
                     mode: 'payment',
                     success_url: `${process.env.BASE_URL}/index.html?success=true&order_id=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
                     cancel_url: `${process.env.BASE_URL}/index.html?cancelled=true&order_id=${orderId}`,
@@ -267,10 +372,15 @@ app.post('/api/inquiry', (req, res) => {
 app.listen(PORT, () => {
     console.log(`\n🚀 LUXE CRAFT Server running on http://localhost:${PORT}`);
     console.log(`📦 API Endpoints:`);
+    console.log(`   GET  /auth/google`);
+    console.log(`   GET  /auth/google/callback`);
+    console.log(`   GET  /api/user`);
+    console.log(`   GET  /api/logout`);
     console.log(`   POST /api/create-checkout-session`);
     console.log(`   POST /api/verify-payment`);
     console.log(`   GET  /api/order/:orderId`);
     console.log(`   GET  /api/orders`);
     console.log(`   POST /api/inquiry`);
     console.log(`\n💳 Stripe mode: ${process.env.STRIPE_SECRET_KEY?.startsWith('sk_test') ? 'TEST' : 'LIVE'}`);
+    console.log(`🔐 Google OAuth: ${process.env.GOOGLE_CLIENT_ID ? 'CONFIGURED' : 'NOT CONFIGURED'}`);
 });
